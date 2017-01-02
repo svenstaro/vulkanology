@@ -20,6 +20,8 @@
 //! extern crate vulkano;
 //! #[macro_use]
 //! extern crate vulkanology;
+//! #
+//! # fn main() {}
 //! ```
 //!
 //! For basic usage of the library you can refer to the doc-tests and `tests/shaders/example.comp`.
@@ -56,7 +58,7 @@ extern crate vulkano;
 macro_rules! instance {
     () => ({
         use vulkano::instance::{Instance, InstanceExtensions};
-        let ref extensions = InstanceExtensions::none();
+        let extensions = &InstanceExtensions::none();
         Instance::new(None, extensions, None).expect("Failed to initialize vulkano.")
     })
 }
