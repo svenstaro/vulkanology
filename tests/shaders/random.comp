@@ -12,30 +12,6 @@ uint invocation_uid =
 layout(set = 0, binding = 0, std430) buffer PRNGSeed { uint64_t prng[]; };
 layout(set = 0, binding = 1, std430) buffer Result { uint64_t result[]; };
 
-// PI.
-const float PI = 3.14159265358979323846;
-
-// The maximum value of a 32 byte unsigned integer.
-const uint MAX_UINT32 = 0xFFFFFFFF;
-
-// The maximum value of a 64 byte unsigned integer.
-const uint64_t MAX_UINT64 = 0xFFFFFFFFFFFFFFFF;
-
-// Implementation of the xorshift1024* PRNG.
-// For reference see: http://xoroshiro.di.unimi.it/xorshift1024star.c
-uint64_t xorshift1024star(void) {
-  // xorshift1024* has a state consisting of 17 64bit integers.
-  const uint id = 17 * invocation_uid;
-  uint p = uint(prng[id + 16]);
-  const uint64_t s0 = prng[id + p];
-  p = (p + 1) & 15;
-  prng[id + 16] = p;
-  uint64_t s1 = prng[id + p];
-  s1 ^= s1 << 31;                                   // a
-  prng[id + p] = s1 ^ s0 ^ (s1 >> 11) ^ (s0 >> 30); // b,c
-  return prng[id + p] * 1181783497276652981;
-}
-
 uint64_t rotl64(const uint64_t x, const uint64_t k) {
   return (x << k) | (x >> (64 - k));
 }
@@ -56,86 +32,10 @@ uint64_t xoroshiro128plus(void) {
   return result;
 }
 
-// Implementation of xorshift128+.
-// For reference see: http://xoroshiro.di.unimi.it/xorshift128plus.c
-uint64_t xorshift128plus(void) {
-  // xorshift128+ has a state consisting of 2 64bit integers.
-  const uint id = 2 * invocation_uid;
-  uint64_t s1 = prng[id + 0];
-  const uint64_t s0 = prng[id + 1];
-  const uint64_t result = s0 + s1;
-  prng[id + 0] = s0;
-  s1 ^= s1 << 23;
-  prng[id + 1] = s1 ^ s0 ^ (s1 >> 18) ^ (s0 >> 5);
-  return result;
-}
-
-// Implementation of splitmix64.
-// For reference see: http://xoroshiro.di.unimi.it/splitmix64.c
-uint64_t splitmix64(void) {
-  const uint id = invocation_uid;
-  prng[id] += 0x9E3779B97F4A7C15;
-  uint64_t z = prng[id];
-  z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9;
-  z = (z ^ (z >> 27)) * 0x94D049BB133111EB;
-  return z ^ (z >> 31);
-}
-
-uint64_t rand_uint64(void) { return xoroshiro128plus(); }
-
-uint rand_uint32(void) { return uint(rand_uint64()); }
-
-// Generates a random float in the range [0.0, 1.0].
-float rand_float(void) { return float(rand_uint64()) / float(MAX_UINT64); }
-
-// Generates a uniformly distributed float in the range [min, max].
-float rand_range(in const float min, in const float max) {
-  return min + rand_float() * (max - min);
-}
-
-// Generates a uniformly distributed vector on a sphere.
-// TODO: Implement a better sphere sampling algorithm.
-vec3 uniform_sample_sphere(void) {
-  // Retry until a vector is found, which is inside the unit sphere
-  for (int i = 0; i < 10000; i++) {
-    vec3 rand_vec = vec3(rand_range(-1.0, 1.0), rand_range(-1.0, 1.0),
-                         rand_range(-1.0, 1.0));
-    float lensqr = dot(rand_vec, rand_vec);
-    if (lensqr <= 1.0 && lensqr > 0.001)
-      return rand_vec / sqrt(lensqr);
-  }
-}
-
-// For any non-zero vector returns an orthogonal vector. For reference see:
-// http://lolengine.net/blog/2013/09/21/picking-orthogonal-vector-combing-coconuts
-vec3 ortho(in const vec3 v) {
-  return abs(v.x) > abs(v.z) ? vec3(-v.y, v.x, 0.0) : vec3(0.0, -v.z, v.y);
-}
-
-// Samples the hemisphere centered around `dir` using a cosine-weighted
-// distibution. For reference see:
-// http://blog.hvidtfeldts.net/index.php/2015/01/path-tracing-3d-fractals/
-vec3 cosine_weighted_oriented_sample_hemisphere(in vec3 dir) {
-  dir = normalize(dir);
-  vec3 ortho1 = normalize(ortho(dir));
-  vec3 ortho2 = normalize(cross(dir, ortho1));
-  float angle = rand_float() * 2.0 * PI;
-  float radius_sqr = rand_float();
-  float radius = sqrt(radius_sqr);
-  float height = sqrt(1.0 - radius_sqr);
-  return cos(angle) * radius * ortho1 + sin(angle) * radius * ortho2 +
-         height * dir;
-}
-
-// Generates a uniformly distributed vector on a hemisphere given by the normal
-// vector `dir`.
-vec3 uniform_oriented_sample_hemisphere(in const vec3 dir) {
-  vec3 v = uniform_sample_sphere();
-  return v * sign(dot(v, dir));
-}
-
 void main(void) {
-    uint64_t next = rand_uint64();
-    result[invocation_uid] = next;
+    // This shader generates random numbers using the xoroshiro128+ PRNG.
+    // It modifies the seed. The seed of the invocation (x,y,1) is located
+    // `2.0 * (y * work_group_size.x * work_group_count.x + x)`.
+    result[invocation_uid] = xoroshiro128plus();
 }
 

@@ -1,5 +1,5 @@
 //! This crate provides macros for writing simple vulkan compute shader tests
-//! using the tomaka/vulkano library.
+//! using the [tomaka/vulkano library](https://github.com/tomaka/vulkano).
 //!
 //! ## About
 //!
@@ -8,7 +8,7 @@
 //! This crate aims at providing a simple-to-use environment for writing vulkan compute shader tests.
 //! It uses the vulkano rust-vulkan bindings end exports macros for a fast implementation of tests.
 //! These macros mostly generate vulkano boilerplate instantiation code. The interface to the
-//! shader are cpu accessible buffers which you can read and write at will and a function for
+//! shader are CPU accessible buffers which you can read and write at will and a function for
 //! executing the shader code and waiting for the result.
 //!
 //! ## Import
@@ -203,7 +203,7 @@ macro_rules! cpu_array_buffer {
 
 /// This macro is the core of the shader-testing framework.
 /// It generates code for initializing the vulkano environment,
-/// it allocates CPU-side buffers, it compiles the shader,
+/// it allocates CPU accessible buffers, it compiles the shader,
 /// it sets up a `ComputePipeline` and provides a function
 /// for executing the shader.
 ///
@@ -252,7 +252,7 @@ macro_rules! cpu_array_buffer {
 ///     execution_command: execute_shader
 /// }
 ///
-/// // II. Fill your buffers with input data. The buffers are binded to the
+/// // II. Fill your buffers with input data. The buffers are bound to the
 /// //      names given in the `pipeline!` macro.
 /// {
 ///     use std::time::Duration;
