@@ -1,5 +1,32 @@
 //! This crate provides macros for writing simple vulkan compute shader tests
 //! using the tomaka/vulkano library.
+//!
+//! ## About
+//!
+//! A core problem of developing shaders is the rather difficult environment in which they are
+//! executed. Even simple things can go wrong and cost the developer a lot of time to fix.
+//! This crate aims at providing a simple-to-use environment for writing vulkan compute shader tests.
+//! It uses the vulkano rust-vulkan bindings end exports macros for a fast implementation of tests.
+//! These macros mostly generate vulkano boilerplate instantiation code. The interface to the
+//! shader are cpu accessible buffers which you can read and write at will and a function for
+//! executing the shader code and waiting for the result.
+//!
+//! ## Import
+//!
+//! Due to the reexport of utility function from the vulkano crate (which you don't need to access,
+//! unless you want to) you need to use the following crates in your application header:
+//!
+//! ```
+//! extern crate vulkano;
+//! #[macro_use]
+//! extern crate vulkanology;
+//! ```
+//!
+//! For basic usage of the library you can refer to the doc-tests and `tests/shaders/example.comp`.
+//! For a working example of a fairly elaborate shader test please refer to: `tests/random.rs`
+//! and `tests/shaders/random.comp`.
+//!
+#![deny(missing_docs)]
 #![feature(macro_reexport)]
 
 #[macro_use]
@@ -18,7 +45,7 @@ extern crate vulkano;
 /// # extern crate vulkano;
 /// # #[macro_use]
 /// # extern crate vulkanology;
-///
+/// #
 /// # #[allow(unused_variables)]
 /// # fn main() {
 /// // Simply invoke the macro and assign the result.
@@ -50,7 +77,7 @@ macro_rules! instance {
 /// # extern crate vulkano;
 /// # #[macro_use]
 /// # extern crate vulkanology;
-///
+/// #
 /// # #[allow(unused_variables)]
 /// # fn main() {
 /// // First initialize a `vulkano::Instance`.
@@ -103,7 +130,7 @@ macro_rules! physical_device {
 /// # extern crate vulkano;
 /// # #[macro_use]
 /// # extern crate vulkanology;
-///
+/// #
 /// # #[allow(unused_variables)]
 /// # fn main() {
 /// let instance = instance!();
@@ -146,7 +173,7 @@ macro_rules! device_and_queue {
 /// # extern crate vulkano;
 /// # #[macro_use]
 /// # extern crate vulkanology;
-///
+/// #
 /// # #[allow(unused_variables)]
 /// # fn main() {
 /// let instance = instance!();
@@ -192,7 +219,7 @@ macro_rules! cpu_array_buffer {
 /// # #[macro_use]
 /// # extern crate vulkanology;
 /// # extern crate rand;
-///
+/// #
 /// # #[allow(unused_variables)]
 /// # fn main() {
 /// // The total number of invocations of your shader is defined in two places:
@@ -200,7 +227,7 @@ macro_rules! cpu_array_buffer {
 /// //      - The workgroup_size which is defined in the shader program header.
 ///
 /// // Here we compute the total number of invocations. The workgroup size is 8x8x1,
-/// // and the workgroup count will be 100x100.
+/// // and the workgroup count will be 100x100x1.
 /// let total_num_invocations = (8 * 8) * (100 * 100);
 ///
 /// // I. Invoke the `pipeline!` macro.
@@ -223,7 +250,7 @@ macro_rules! cpu_array_buffer {
 ///     execution_command: execute_shader
 /// }
 ///
-/// // 2. Fill your buffers with input data. The buffers are binded to the
+/// // II. Fill your buffers with input data. The buffers are binded to the
 /// //      names given in the `pipeline!` macro.
 /// {
 ///     use std::time::Duration;
@@ -237,11 +264,11 @@ macro_rules! cpu_array_buffer {
 ///     }
 /// }
 ///
-/// // 3. Execute the shader.
+/// // III. Execute the shader.
 /// //    `run_example_shader_function_name();`
 /// execute_shader();
 ///
-/// // 4. Assert validity of the results.
+/// // IV. Assert validity of the results.
 /// //    `assert!(datainbuffersisvalid())`
 /// {
 ///     use std::time::Duration;
@@ -323,3 +350,4 @@ macro_rules! pipeline {
         };
     }
 }
+
