@@ -1,0 +1,41 @@
+#version 450
+#extension GL_ARB_gpu_shader_int64 : enable
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+// Unique invocation id. Used to determine the index of the PRNG seed for this
+// invocation in `prng[]`.
+uint invocation_uid =
+    gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x +
+    gl_GlobalInvocationID.x;
+
+layout(set = 0, binding = 0, std430) buffer PRNGSeed { uint64_t prng[]; };
+layout(set = 0, binding = 1, std430) buffer Result { uint64_t result[]; };
+
+uint64_t rotl64(const uint64_t x, const uint64_t k) {
+  return (x << k) | (x >> (64 - k));
+}
+
+// Implementation of the xoroshiro128+ PRNG.
+// For reference see: http://xoroshiro.di.unimi.it/xoroshiro128plus.c
+uint64_t xoroshiro128plus(void) {
+  // xoroshiro128+ has a state consisting of 2 64bit integers.
+  const uint id = 2 * invocation_uid;
+  const uint64_t s0 = prng[id];
+  uint64_t s1 = prng[id + 1];
+  const uint64_t result = s0 + s1;
+
+  s1 ^= s0;
+  prng[id] = rotl64(s0, 55) ^ s1 ^ (s1 << 14);
+  prng[id + 1] = rotl64(s1, 36);
+
+  return result;
+}
+
+void main(void) {
+    // This shader generates random numbers using the xoroshiro128+ PRNG.
+    // It modifies the seed. The seed of the invocation (x,y,1) is located
+    // `2.0 * (y * work_group_size.x * work_group_count.x + x)`.
+    result[invocation_uid] = xoroshiro128plus();
+}
+
