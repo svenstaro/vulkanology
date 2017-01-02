@@ -9,7 +9,7 @@ extern crate rand;
 use std::time::Duration;
 use rand::{Rng, StdRng};
 
-use vulkano::buffer::cpu_access::{WriteLock, ReadLock};
+use vulkano::buffer::cpu_access::WriteLock;
 
 /// Implementation of the xoroshiro128+ PRNG.
 /// For reference see: http://xoroshiro.di.unimi.it/xoroshiro128plus.c

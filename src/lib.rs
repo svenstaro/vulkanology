@@ -20,7 +20,6 @@ extern crate vulkano;
 /// # extern crate vulkanology;
 ///
 /// # #[allow(unused_variables)]
-/// # #[ignore]
 /// # fn main() {
 /// // Simply invoke the macro and assign the result.
 /// let instance = instance!();
@@ -53,7 +52,6 @@ macro_rules! instance {
 /// # extern crate vulkanology;
 ///
 /// # #[allow(unused_variables)]
-/// # #[ignore]
 /// # fn main() {
 /// // First initialize a `vulkano::Instance`.
 /// let instance = instance!();
@@ -65,7 +63,7 @@ macro_rules! instance {
 /// }
 /// {
 ///     // With some features:
-///     let physical_device = physical_device!(instance, shader_int64, sparse_binding);
+///     let physical_device = physical_device!(instance, robust_buffer_access, full_draw_index_uint32);
 /// }
 /// # }
 /// ```
