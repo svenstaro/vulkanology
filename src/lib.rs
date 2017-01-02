@@ -191,6 +191,7 @@ macro_rules! cpu_array_buffer {
 /// # extern crate vulkano;
 /// # #[macro_use]
 /// # extern crate vulkanology;
+/// # extern crate rand;
 ///
 /// # #[allow(unused_variables)]
 /// # fn main() {
@@ -222,16 +223,37 @@ macro_rules! cpu_array_buffer {
 ///     execution_command: execute_shader
 /// }
 ///
-/// // 2. Fill your buffers with input data.
+/// // 2. Fill your buffers with input data. The buffers are binded to the
+/// //      names given in the `pipeline!` macro.
 /// {
-///     
+///     use std::time::Duration;
+///     use rand::random;
+///
+///     use vulkano::buffer::cpu_access::WriteLock;
+///     let mut mapping: WriteLock<[u32]> = data.write(Duration::new(1, 0)).unwrap();
+///
+///     for item in mapping.iter_mut() {
+///         *item = random::<u32>();
+///     }
 /// }
+///
 /// // 3. Execute the shader.
 /// //    `run_example_shader_function_name();`
+/// execute_shader();
 ///
 /// // 4. Assert validity of the results.
 /// //    `assert!(datainbuffersisvalid())`
+/// {
+///     use std::time::Duration;
+///     use vulkano::buffer::cpu_access::ReadLock;
+///     let input: ReadLock<[u32]> = data.read(Duration::new(1, 0)).unwrap();
+///     let output: ReadLock<[u32]> = result.read(Duration::new(1, 0)).unwrap();
+///     let zipped = input.iter().zip(output.iter());
 ///
+///     for (invocation_uid, (item_in, item_out)) in zipped.enumerate() {
+///         assert_eq!(*item_out, (*item_in).wrapping_mul(invocation_uid as u32));
+///     }
+/// }
 /// # }
 /// ```
 ///

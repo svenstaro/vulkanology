@@ -14,9 +14,9 @@ license = "MIT"
 
 [dependencies]
 vulkano = "*"
+rand = "*"
 
 [dev-dependencies]
-rand = "*"
 
 [build-dependencies]
 vulkano-shaders = "*"
