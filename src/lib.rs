@@ -38,7 +38,7 @@ macro_rules! instance {
 /// the instance variable name and an optional list of features which the device
 /// should support.
 /// All available features are defined here:
-/// https://github.com/tomaka/vulkano/blob/master/vulkano/src/features.rs  
+/// https://github.com/tomaka/vulkano/blob/master/vulkano/src/features.rs
 ///
 /// # Panics
 ///
@@ -181,7 +181,7 @@ macro_rules! cpu_array_buffer {
 /// # Panics
 ///
 /// * If the instance, physical_device, device or queue cannot be selected/initialized.
-/// * If the buffers cannot be initialized. 
+/// * If the buffers cannot be initialized.
 /// * If the shader cannot be loaded.
 /// * If the pipeline cannot be created.
 ///
@@ -323,4 +323,3 @@ macro_rules! pipeline {
         };
     }
 }
-

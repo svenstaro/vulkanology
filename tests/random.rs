@@ -32,6 +32,7 @@ fn test_random_next_u64() {
 
     // Create the environment.
     pipeline!{
+        shader_path: "tests/shaders/random.comp",
         workgroup_count: [100, 100, 1],
         buffers: {
             prng: [u64;NUM_INVOCATIONS*PRNG_XOROSHIRO128PLUS_NUM_U64],
