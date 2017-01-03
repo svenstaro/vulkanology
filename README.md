@@ -1,7 +1,6 @@
 # vulkanology
 Test Vulkan compute shaders using Rust
 
-[![Build Status](https://travis-ci.org/svenstaro/vulkanology.svg?branch=master)](https://travis-ci.org/svenstaro/vulkanology)
 [![Docs Status](https://docs.rs/vulkanology/badge.svg)](https://docs.rs/vulkanology)
 [![license](http://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/svenstaro/vulkanology/blob/master/LICENSE)
 [![Crates.io](https://img.shields.io/crates/v/vulkanology.svg)](https://crates.io/crates/vulkanology)
