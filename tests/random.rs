@@ -71,7 +71,7 @@ fn test_random_next_u64() {
 
             // Compare the local results with the results from the shader.
             let seed_id_offset = PRNG_XOROSHIRO128PLUS_NUM_U64 * invocation_uid;
-            let remote_seed = [seed_buffer[seed_id_offset], seed_buffer[seed_id_offset]];
+            let remote_seed = [seed_buffer[seed_id_offset], seed_buffer[seed_id_offset + 1]];
             assert_eq!(remote_seed, local_seed);
             assert_eq!(*remote_result, local_result);
         }
