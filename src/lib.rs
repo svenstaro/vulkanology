@@ -328,8 +328,8 @@ macro_rules! pipeline {
         // Allocate buffers.
         $( let $buf_ident = cpu_array_buffer!(device, queue, $buf_type, $buf_len); )*
 
-            // Create descriptor pool.
-            let descriptor_pool = DescriptorPool::new(device);
+        // Create descriptor pool.
+        let descriptor_pool = DescriptorPool::new(device);
 
         // Create pipeline layout.
         let pipeline_layout = layout_definition::CustomPipeline::new(device).unwrap();
