@@ -1,5 +1,6 @@
 //! This is an example of an elaborate shader test.
 
+#[macro_use]
 extern crate vulkano;
 #[macro_use]
 extern crate vulkanology;

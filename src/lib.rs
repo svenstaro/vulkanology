@@ -5,18 +5,25 @@
 //!
 //! A core problem of developing shaders is the rather difficult environment in which they are
 //! executed. Even simple things can go wrong and cost the developer a lot of time to fix.
-//! This crate aims at providing a simple-to-use environment for writing vulkan compute shader tests.
-//! It uses the vulkano rust-vulkan bindings end exports macros for a fast implementation of tests.
-//! These macros mostly generate vulkano boilerplate instantiation code. The interface to the
-//! shader are CPU accessible buffers which you can read and write at will and a function for
-//! executing the shader code and waiting for the result.
+//! This crate aims at providing a simple-to-use environment for writing vulkan compute
+//! shader tests. It uses the vulkano rust-vulkan bindings end exports macros for a fast
+//! implementation of tests. These macros mostly generate vulkano boilerplate instantiation code.
+//! The interface to the shader are CPU accessible buffers which you can read and write at will
+//! and a function for executing the shader code and waiting for the result.
+//!
 //!
 //! ## Import
 //!
-//! Due to the reexport of utility function from the vulkano crate (which you don't need to access,
-//! unless you want to) you need to use the following crates in your application header:
+//! This library does not have any dependencies as it just exports macros for use in your
+//! testing modules. This is also required to prevent version incompatibilities between
+//! a vulkano which would be used here and your project-local vulkano.
+//!
+//! Due to the use of utility function and macros from the vulkano crate
+//! (which you don't need to access, unless you want to) you need to use the
+//! following crates in your application header:
 //!
 //! ```
+//! #[macro_use]
 //! extern crate vulkano;
 //! #[macro_use]
 //! extern crate vulkanology;
@@ -31,10 +38,6 @@
 #![deny(missing_docs)]
 #![feature(macro_reexport)]
 
-#[macro_use]
-#[macro_reexport(pipeline_layout)]
-extern crate vulkano;
-
 /// Creates a `vulkano::Instance`. Does not enable any instance extensions.
 ///
 /// # Panics
@@ -44,6 +47,8 @@ extern crate vulkano;
 /// # Example
 ///
 /// ```
+/// # // These tests du not require vulkano-macros,
+/// # // therefore the `macro_use` will be omitted here, unless required.
 /// # extern crate vulkano;
 /// # #[macro_use]
 /// # extern crate vulkanology;
@@ -148,7 +153,7 @@ macro_rules! device_and_queue {
         // Select a queue family which supports compute operations.
         let mut queue_families = $physical_device.queue_families();
         let queue_family = queue_families.find(|q| q.supports_compute())
-                .expect("Couldn't find a compute queue family.");
+            .expect("Couldn't find a compute queue family.");
 
         // Initialize a device and a queue.
         let device_extensions = DeviceExtensions::none();
@@ -156,7 +161,7 @@ macro_rules! device_and_queue {
                                                &$physical_device.supported_features(),
                                                &device_extensions,
                                                [(queue_family, 0.5)].iter().cloned())
-                .expect("Failed to create device.");
+            .expect("Failed to create device.");
 
         // We only requested one queue, so `queues` is an array with only one element.
         (device, queues.next().unwrap())
@@ -192,11 +197,11 @@ macro_rules! cpu_array_buffer {
         use vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
         unsafe {
             CpuAccessibleBuffer::<[$buf_type]>::uninitialized_array(
-                       $device,
-                       $buf_len,
-                       &BufferUsage::all(),
-                       Some($queue.family()))
-                   .expect("Failed to create a cpu accessible buffer.")
+                $device,
+                $buf_len,
+                &BufferUsage::all(),
+                Some($queue.family()))
+                .expect("Failed to create a cpu accessible buffer.")
         }
     })
 }
@@ -217,6 +222,7 @@ macro_rules! cpu_array_buffer {
 /// # Example
 ///
 /// ```
+/// # #[macro_use]
 /// # extern crate vulkano;
 /// # #[macro_use]
 /// # extern crate vulkanology;
@@ -340,7 +346,7 @@ macro_rules! pipeline {
                                             &pipeline_layout,
                                             &compute_shader.main_entry_point(),
                                             &())
-                .expect("Failed to create compute pipeline.");
+            .expect("Failed to create compute pipeline.");
 
         // Assemble and return the execution command.
         let workgroup_count = [$workgroup_x, $workgroup_y, $workgroup_z];
@@ -352,4 +358,3 @@ macro_rules! pipeline {
         };
     }
 }
-
