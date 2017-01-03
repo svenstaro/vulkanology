@@ -13,10 +13,8 @@ keywords = ["shader", "vulkan", "test"]
 license = "MIT"
 
 [dependencies]
-vulkano = "*"
-rand = "*"
-
-[dev-dependencies]
+vulkano = "0.3.1"
+rand = "0.3.15"
 
 [build-dependencies]
-vulkano-shaders = "*"
+vulkano-shaders = "0.3.1"
