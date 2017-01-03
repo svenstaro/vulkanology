@@ -10,7 +10,7 @@ This crate aims at providing a very simple interface for writing tests for vulka
 
 # Example
 
-```
+```rust
 extern crate vulkano;
 #[macro_use]
 extern crate vulkanology;
