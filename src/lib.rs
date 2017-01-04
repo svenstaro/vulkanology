@@ -290,7 +290,7 @@ macro_rules! cpu_array_buffer {
 macro_rules! pipeline {
     {
         shader_path: $shader_path:expr,
-        workgroup_count: [$workgroup_x:expr, $workgroup_y:expr, $workgroup_z:expr],
+        workgroup_count: $workgroup_count:expr,
         buffers: { $( $buf_ident:ident : [$buf_type:ty;$buf_len:expr] ),* },
         execution_command: $exec_cmd:ident
     } => {
@@ -343,9 +343,8 @@ macro_rules! pipeline {
                 .expect("Failed to create compute pipeline.");
 
         // Assemble and return the execution command.
-        let workgroup_count = [$workgroup_x, $workgroup_y, $workgroup_z];
         let execution_command = PrimaryCommandBufferBuilder::new(device, queue.family())
-            .dispatch(&pipeline, buffer_set, workgroup_count, &())
+            .dispatch(&pipeline, buffer_set, $workgroup_count, &())
             .build();
         let $exec_cmd = || {
             submit_command(&execution_command, queue).unwrap();
