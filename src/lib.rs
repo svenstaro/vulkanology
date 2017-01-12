@@ -35,6 +35,8 @@
 #[macro_reexport(pipeline_layout)]
 extern crate vulkano;
 
+pub mod build_utils;
+
 /// Creates a `vulkano::Instance`. Does not enable any instance extensions.
 ///
 /// # Panics
