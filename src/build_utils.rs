@@ -12,7 +12,7 @@ use std::fs::create_dir_all;
 /// shaders into semantically grouped parts, so-called segments. Prior to building the shaders the
 /// build script will have to concatenate the files. Without additional measures the errors of the
 /// shader compiler would point to the generated files/lines. Therefore we insert the `#line`
-/// macros which set the correct file name and line number.
+/// pragma which sets the correct file name and line number in the error reporter.
 ///
 /// # Panics
 ///
@@ -24,43 +24,74 @@ use std::fs::create_dir_all;
 /// # Example
 ///
 /// ```
+/// extern crate vulkanology;
+/// # extern crate rand;
+/// #
+/// # fn main() {
 /// use std::fs::{create_dir_all, File};
-/// use std::io::{BufRead, BufReader};
+/// use std::io::{BufRead, BufReader, Lines, Write};
 /// use std::path::Path;
 /// use vulkanology::build_utils::concatenate_files;
 ///
-/// // Inputs
+/// // Working directory.
 /// let target = Path::new("target");
-/// let path_a = target.join("a.in").to_path_buf();
-/// let path_b = target.join("b.in").to_path_buf();
 /// create_dir_all(target).unwrap();
 ///
-/// // Outputs
+/// // Input segment paths.
+/// let path_a = target.join("a.in");
+/// let path_b = target.join("b.in");
+///
+/// // Fill segments with some random data
+/// # fn fill_segment_with_random_test_data<P: AsRef<Path>>(path: P) {
+/// #     let mut file = File::create(path.as_ref()).unwrap();
+/// #     fn append_random_line(data: &mut Vec<u8>) {
+/// #         let line_length = rand::random::<u32>() % 100;
+/// #         for _ in 0..line_length {
+/// #             let char = 97 + rand::random::<u8>() % 26;
+/// #             data.push(char);
+/// #         }
+/// #         // Push a newline.
+/// #         data.push(10)
+/// #     }
+/// #     let mut buffer = Vec::new();
+/// #     let num_lines = rand::random::<u32>() % 100;
+/// #     for _ in 0..num_lines {
+/// #         append_random_line(&mut buffer); 
+/// #     }
+/// #     file.write_all(&buffer).unwrap();
+/// # } 
+/// fill_segment_with_random_test_data(&path_a);
+/// fill_segment_with_random_test_data(&path_b);
+///
+/// // Concatenated output path.
 /// let path_c = target.join("c.out");
-/// 
+///
 /// // Concatenate the files.
-/// concatenate_files(&[path_a, path_b], &path_c);
+/// concatenate_files(&[&path_a, &path_b], &path_c);
+/// #
+/// # fn contains_lines<P: AsRef<Path>>(lines1: &mut Lines<BufReader<&File>>, path2: P) {
+/// #     let file2 = File::open(path2).unwrap();
+/// #     let lines2 = BufReader::new(&file2).lines();
+/// #     for line2 in lines2 {
+/// #         let line1 = lines1.next().unwrap();
+/// #         assert_eq!(line1.unwrap(), line2.unwrap());
+/// #     }
+/// # }
 ///
 /// // Check whether the resulting file contains both of the input files and a `#line` pragma.
-/// let input_files = [path_a, path_b];
-/// let mut file_c = File::open(path_c).unwrap();
-/// let mut lines_c = BufReader::new(&file_c);
+/// let file_c = File::open(path_c).unwrap();
+/// let mut lines_c = BufReader::new(&file_c).lines();
 /// 
-/// fn contains_file(a: &mut BufReader<&File>, b: &mut BufReader<&File>) {
-///     for (line_a, line_b) in a.lines().zip(b.lines()) {
-///         assert_eq!(line_a.unwrap(), line_b.unwrap());
-///     }
-/// }
-///
-/// for input_file in &input_files {
-///     let mut file_input = File::open(input_file).unwrap();
-///     let mut lines_input = BufReader::new(&file_input);
-///
-///     contains_file(&mut lines_c, &mut lines_input);
-/// }
-/// 
+/// // The first file content is not preceeded by a `#line` pragma.
+/// contains_lines(&mut lines_c, path_a);
+/// // Then comes the `#line` pragma ...
+/// lines_c.next();
+/// // ... and the content of the second file.
+/// contains_lines(&mut lines_c, path_b);
+/// # }
 /// ```
-pub fn concatenate_files<P: AsRef<Path>>(file_names: &[P], write_to: &Path) {
+pub fn concatenate_files<PI, PO>(file_names: &[PI], write_to: PO)
+        where PI: AsRef<Path>, PO: AsRef<Path> {
     if file_names.len() == 0 {
         panic!("There must be at least one file to concatenate.");
     }
@@ -74,6 +105,7 @@ pub fn concatenate_files<P: AsRef<Path>>(file_names: &[P], write_to: &Path) {
     let line_pragma = b"#line 1 \"";
     let quotes = b"\"\n";
 
+    let write_to = write_to.as_ref();
     let target_dir = write_to.parent().unwrap();
     create_dir_all(target_dir).expect("Failed to create target directory.");
     let mut file_out = File::create(write_to)
