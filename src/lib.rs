@@ -1,43 +1,54 @@
 //! This crate provides macros for writing simple vulkan compute shader tests
-//! using the [tomaka/vulkano library](https://github.com/tomaka/vulkano).
+//! using the tomaka/[`vulkano`] library.
 //!
 //! ## About
 //!
 //! A core problem of developing shaders is the rather difficult environment in which they are
 //! executed. Even simple things can go wrong and cost the developer a lot of time to fix.
 //! This crate aims at providing a simple-to-use environment for writing vulkan compute shader tests.
-//! It uses the vulkano rust-vulkan bindings end exports macros for a fast implementation of tests.
-//! These macros mostly generate vulkano boilerplate instantiation code. The interface to the
+//! It uses the [`vulkano`] rust-vulkan bindings end exports macros for a fast implementation of tests.
+//! These macros mostly generate [`vulkano`] boilerplate instantiation code. The interface to the
 //! shader are CPU accessible buffers which you can read and write at will and a function for
 //! executing the shader code and waiting for the result.
 //!
-//! ## Import
+//! ## Import (Usage in integration test modules)
 //!
-//! Due to the reexport of utility function from the vulkano crate (which you don't need to access,
-//! unless you want to) you need to use the following crates in your application header:
+//! Due to the reexport of utility function from the [`vulkano`] crate (which you don't need to access,
+//! unless you want to) you need to use the following crates in your test module header:
 //!
 //! ```
 //! extern crate vulkano;
 //! #[macro_use]
 //! extern crate vulkanology;
 //! #
-//! # fn main() {}
+//! # fn main() {
+//! # instance!();
+//! # }
 //! ```
 //!
 //! For basic usage of the library you can refer to the doc-tests and `tests/shaders/example.comp`.
 //! For a working example of a fairly elaborate shader test please refer to: `tests/random.rs`
 //! and `tests/shaders/random.comp`.
 //!
+//! ## Building GLSL shaders
+//!
+//! This utility pack is built around the [`vulkano`] library, which also provides `vulkano-shaders`,
+//! a library which compiles GLSL shaders into Rust interface modules.
+//! For examples on how to build shaders with `vulkano-shaders` see:
+//! https://github.com/svenstaro/vulkanology/blob/master/build.rs
+//! https://github.com/tomaka/vulkano/blob/master/examples/build.rs
+//!
+//! [`vulkano`]: https://github.com/tomaka/vulkano
+//!
 #![deny(missing_docs)]
 #![feature(macro_reexport)]
 
-#[macro_use]
 #[macro_reexport(pipeline_layout)]
 extern crate vulkano;
 
 pub mod build_utils;
 
-/// Creates a `vulkano::Instance`. Does not enable any instance extensions.
+/// Creates a [`vulkano::instance::Instance`]. Does not enable any instance extensions.
 ///
 /// # Panics
 ///
@@ -56,6 +67,9 @@ pub mod build_utils;
 /// let instance = instance!();
 /// # }
 /// ```
+///
+/// [`vulkano::instance::Instance`]: https://docs.rs/vulkano/0.3.1/vulkano/instance/struct.Instance.html
+///
 #[macro_export]
 macro_rules! instance {
     () => ({
@@ -65,7 +79,7 @@ macro_rules! instance {
     })
 }
 
-/// This macro generates code for loading a `PhysicalDevice`. It takes
+/// This macro generates code for loading a [`PhysicalDevice`]. It takes
 /// the instance variable name and an optional list of features which the device
 /// should support.
 /// All available features are defined here:
@@ -101,6 +115,9 @@ macro_rules! instance {
 /// }
 /// # }
 /// ```
+///
+/// [`PhysicalDevice`]: https://docs.rs/vulkano/0.3.1/vulkano/instance/struct.PhysicalDevice.html
+///
 #[macro_export]
 macro_rules! physical_device {
     // Rule for selecting a device with specific features.
@@ -121,7 +138,7 @@ macro_rules! physical_device {
     })
 }
 
-/// Creates a `Device` and a `Queue` for compute operations.
+/// Creates a [`Device`] and a [`Queue`] for compute operations.
 ///
 /// # Panics
 ///
@@ -142,6 +159,10 @@ macro_rules! physical_device {
 /// let (device, queue) = device_and_queue!(physical_device);
 /// # }
 /// ```
+///
+/// [`Device`]: https://docs.rs/vulkano/0.3.1/vulkano/device/struct.Device.html
+/// [`Queue`]: https://docs.rs/vulkano/0.3.1/vulkano/device/struct.Queue.html
+///
 #[macro_export]
 macro_rules! device_and_queue {
     ($physical_device:ident) => ({
@@ -165,7 +186,7 @@ macro_rules! device_and_queue {
     })
 }
 
-/// Creates a new uninitialized buffer of type `$buf_type` of length `$buf_len`.
+/// Creates a new uninitialized [buffer] of type `$buf_type` of length `$buf_len`.
 ///
 /// # Panics
 ///
@@ -188,6 +209,9 @@ macro_rules! device_and_queue {
 /// let buffer = cpu_array_buffer!(device, queue, u32, 13*31);
 /// # }
 /// ```
+///
+/// [buffer]: https://docs.rs/vulkano/0.3.1/vulkano/buffer/cpu_access/struct.CpuAccessibleBuffer.html
+///
 #[macro_export]
 macro_rules! cpu_array_buffer {
     ($device:ident, $queue:ident, $buf_type:ty, $buf_len:expr) => ({
@@ -205,13 +229,13 @@ macro_rules! cpu_array_buffer {
 
 /// This macro is the core of the shader-testing framework.
 /// It generates code for initializing the vulkano environment,
-/// it allocates CPU accessible buffers, it compiles the shader,
-/// it sets up a `ComputePipeline` and provides a function
+/// it allocates [`CpuAccessibleBuffer`]s, it compiles the shader,
+/// it sets up a [`ComputePipeline`] and provides a function
 /// for executing the shader.
 ///
 /// # Panics
 ///
-/// * If the instance, physical_device, device or queue cannot be selected/initialized.
+/// * If the `instance`, `physical_device`, `device` or `queue` cannot be selected/initialized.
 /// * If the buffers cannot be initialized.
 /// * If the shader cannot be loaded.
 /// * If the pipeline cannot be created.
@@ -230,8 +254,8 @@ macro_rules! cpu_array_buffer {
 /// //      - The workgroup_count, which is defined in the pipeline macro.
 /// //      - The workgroup_size which is defined in the shader program header.
 ///
-/// // Here we compute the total number of invocations. The workgroup size is 8x8x1,
-/// // and the workgroup count will be 100x100x1.
+/// // Here we compute the total number of invocations. The workgroup size is `8x8x1`,
+/// // and the workgroup count will be `100x100x1`.
 /// let total_num_invocations = (8 * 8) * (100 * 100);
 ///
 /// // I. Invoke the `pipeline!` macro.
@@ -288,6 +312,10 @@ macro_rules! cpu_array_buffer {
 /// # }
 /// ```
 ///
+/// [`CpuAccessibleBuffer`]:
+///     https://docs.rs/vulkano/0.3.1/vulkano/buffer/cpu_access/struct.CpuAccessibleBuffer.html
+/// [`ComputePipeline`]: https://docs.rs/vulkano/0.3.1/vulkano/pipeline/struct.ComputePipeline.html
+///
 #[macro_export]
 macro_rules! pipeline {
     {
@@ -316,7 +344,7 @@ macro_rules! pipeline {
             }
         }
 
-        // Init vulkano.
+        // Init `vulkano`.
         let instance = instance!();
         let physical_device = physical_device!(instance);
         let (ref device, ref queue) = device_and_queue!(physical_device);
@@ -353,4 +381,3 @@ macro_rules! pipeline {
         };
     }
 }
-

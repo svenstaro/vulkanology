@@ -1,6 +1,8 @@
 //! This module exports shader building tools which simplify the shader test building process.
 
 use std::path::Path;
+use std::io::{Read, Write};
+use std::fs::File;
 use std::fs::create_dir_all;
 
 /// Concatenates GLSL source files inserting `#line` statements where necessary.
@@ -56,10 +58,10 @@ use std::fs::create_dir_all;
 /// #     let mut buffer = Vec::new();
 /// #     let num_lines = rand::random::<u32>() % 100;
 /// #     for _ in 0..num_lines {
-/// #         append_random_line(&mut buffer); 
+/// #         append_random_line(&mut buffer);
 /// #     }
 /// #     file.write_all(&buffer).unwrap();
-/// # } 
+/// # }
 /// fill_segment_with_random_test_data(&path_a);
 /// fill_segment_with_random_test_data(&path_b);
 ///
@@ -81,23 +83,25 @@ use std::fs::create_dir_all;
 /// // Check whether the resulting file contains both of the input files and a `#line` pragma.
 /// let file_c = File::open(path_c).unwrap();
 /// let mut lines_c = BufReader::new(&file_c).lines();
-/// 
+///
 /// // The first file content is not preceeded by a `#line` pragma.
 /// contains_lines(&mut lines_c, path_a);
 /// // Then comes the `#line` pragma ...
-/// lines_c.next();
+/// let expected_pragma = String::from(r#"#line 1 "target/b.in""#);
+/// let actual_pragma = lines_c.next().unwrap().unwrap();
+/// assert_eq!(expected_pragma, actual_pragma);
 /// // ... and the content of the second file.
 /// contains_lines(&mut lines_c, path_b);
 /// # }
 /// ```
+///
 pub fn concatenate_files<PI, PO>(file_names: &[PI], write_to: PO)
-        where PI: AsRef<Path>, PO: AsRef<Path> {
+    where PI: AsRef<Path>,
+          PO: AsRef<Path>
+{
     if file_names.len() == 0 {
         panic!("There must be at least one file to concatenate.");
     }
-
-    use std::io::{Read, Write};
-    use std::fs::File;
 
     // Each segment (.comp file) content is prefixed with the #line pragma. This makes the error
     // messages be displayed with their filename and actual line number instead of the position of
@@ -122,7 +126,7 @@ pub fn concatenate_files<PI, PO>(file_names: &[PI], write_to: PO)
             }
         };
 
-        // Rerun the build script if one of the files changed
+        // Rerun the build script if one of the files changed.
         // for reference see: http://doc.crates.io/build-script.html#outputs-of-the-build-script
         println!("cargo:rerun-if-changed={}", file_name.display());
         let mut buffer = Vec::new();
@@ -130,7 +134,7 @@ pub fn concatenate_files<PI, PO>(file_names: &[PI], write_to: PO)
         file_out.write_all(&buffer).expect("Failed to write to file.");
     }
 
-    // Copy the first file without any preceeding pragmas
+    // Copy the first file without any preceeding pragmas.
     let first_file = file_names_iter.next().unwrap();
     append_file(&mut file_out, first_file.as_ref());
 
@@ -154,47 +158,69 @@ pub fn concatenate_files<PI, PO>(file_names: &[PI], write_to: PO)
 /// `tests/something.rs` a regular rust integration test.
 /// `tests/shaders/<$group_prefix>/<$shader_name>_header.comp` - The test shader header.
 /// `tests/shaders/<$group_prefix>/<$shader_name>_main.comp` - The test shader main.
-/// `src/shaders/whatever.comp` - Some segments which the test shader includes and tests.
+/// `<$segment>` - Some segments which the test shader includes and tests.
 ///
 /// The GLSL files are then concatenated into a complete shader:
 /// `target/test_shaders/<$shader_name>.comp`
 ///
-/// Finally these shaders are compiled and wrapped into Rust code which is located at:
+/// Afterwards, the concatenated compute shader can either be directly passed to the Vulkan
+/// API as GLSL code, or compiled into a Rust interface module by the [`vulkano_shaders`] crate.
+/// [`vulkano_shaders`] provides a method called [`build_glsl_shaders`] which should be used
+/// in the build script, right after concatenating the shader fragments. The generated module
+/// would be located in:
 /// `<OUT_DIR>/shaders/target/test_shaders/<$shader_name>.comp`
 ///
+/// Fox examples on how to use this function see [this example].
 ///
 /// # Example
 ///
 /// ```
-/// // The path to the normal shader segments.
-/// let src_shaders = Path::new("src/shaders");
-/// let random = src_shaders.join("random.comp");
+/// #[macro_use]
+/// extern crate vulkanology;
 ///
-/// // Tests for the random segment.
-/// let random_shaders = Path::new("random");
+/// # #[allow(unused_variables)]
+/// fn main() {
+///     // The path to the normal shader segments.
+///     // In this example it's the same folder as the test shader segments.
+///     let random_src_segment = Path::new("tests/shaders/random/random_segment.comp");
 ///
-/// // next_u64().
-/// gen_simple_test_shader!{
-///     group_prefix: random_shaders,
-///     shader_name: test_random_next_u64,
-///     segments: [random.clone()]
+///     // Path to tests for the random segment.
+///     let random_test_segments = Path::new("random");
+///
+///     // Test for `next_u64()`.
+///     gen_simple_test_shader!{
+///         group_prefix: random_test_segments,
+///         shader_name: test_random_next_u64,
+///         segments: [random_src_segment]
+///     }
+///
+///     // `test_random_next_u64` is now set to the `Path` to the concatenated file.
 /// }
 /// ```
+///
+/// [`vulkano_shaders`]: https://github.com/tomaka/vulkano
+/// [`build_glsl_shaders`]: https://github.com/tomaka/vulkano/blob/master/vulkano-shaders/src/lib.rs#L29
+/// [this example]: https://github.com/tomaka/vulkano/blob/master/examples/build.rs
+///
+#[macro_export]
 macro_rules! gen_simple_test_shader {
     (
         group_prefix: $group_prefix:ident,
         shader_name: $shader_name:ident,
         segments: [ $( $segment:expr ),* ]
     ) => {
+        use std::path::Path;
+        use vulkanology::build_utils::concatenate_files;
+
         let path_and_group = Path::new("tests/shaders").join($group_prefix);
         let segments = [
             path_and_group.join(concat!(stringify!($shader_name), "_header.comp")),
-            $( $segment, )*
+            $( $segment.to_path_buf(), )*
             path_and_group.join(concat!(stringify!($shader_name), "_main.comp"))
         ];
         let output = Path::new("target/test_shaders")
             .join(concat!(stringify!($shader_name), ".comp"));
         concatenate_files(&segments, &output);
-        let $shader_name = (output.to_str().unwrap(), ShaderType::Compute);
+        let $shader_name = output.to_str().unwrap();
     }
 }
