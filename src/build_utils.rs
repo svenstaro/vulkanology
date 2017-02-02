@@ -155,7 +155,9 @@ pub fn concatenate_files<PI, PO>(file_names: &[PI], write_to: PO)
 /// segments.
 ///
 /// * `$group_prefix` the prefix of the directory where tests for a particular UUT are located.
-/// * `$shader_name` the name of the shader test (should be a unique name).
+/// * `$shader_name` the name of the shader test (should be a unique name). An identifier is
+/// expected here. After calling this macro this identifier will be bound to a `&str`, which is the
+/// path to concatenated shader file.
 /// * `$segment` a list of shader segments to include between the header and the main.
 ///
 /// The directory structure for a single shader test function should look like the following:
@@ -188,6 +190,7 @@ pub fn concatenate_files<PI, PO>(file_names: &[PI], write_to: PO)
 /// ```
 /// #[macro_use]
 /// extern crate vulkanology;
+/// use std::path::Path;
 ///
 /// # #[allow(unused_variables)]
 /// fn main() {
@@ -219,18 +222,21 @@ macro_rules! gen_simple_test_shader {
         shader_name: $shader_name:ident,
         segments: [ $( $segment:expr ),* ]
     ) => {
-        use std::path::Path;
-        use vulkanology::build_utils::concatenate_files;
+        let output_path_buf = {
+            use std::path::Path;
+            use vulkanology::build_utils::concatenate_files;
 
-        let path_and_group = Path::new("tests/shaders").join($group_prefix);
-        let segments = [
-            path_and_group.join(concat!(stringify!($shader_name), "_header.comp")),
-            $( $segment.to_path_buf(), )*
-            path_and_group.join(concat!(stringify!($shader_name), "_main.comp"))
-        ];
-        let output = Path::new("target/test_shaders")
-            .join(concat!(stringify!($shader_name), ".comp"));
-        concatenate_files(&segments, &output);
-        let $shader_name = output.to_str().unwrap();
+            let path_and_group = Path::new("tests/shaders").join($group_prefix);
+            let segments = [
+                path_and_group.join(concat!(stringify!($shader_name), "_header.comp")),
+                $( $segment.to_path_buf(), )*
+                path_and_group.join(concat!(stringify!($shader_name), "_main.comp"))
+            ];
+            let output = Path::new("target/test_shaders")
+                .join(concat!(stringify!($shader_name), ".comp"));
+            concatenate_files(&segments, &output);
+            output
+        };
+        let $shader_name = output_path_buf.to_str().unwrap();
     }
 }
