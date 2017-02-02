@@ -34,10 +34,14 @@
 //!
 //! This utility pack is built around the [`vulkano`] library, which also provides `vulkano-shaders`,
 //! a library which compiles GLSL shaders into Rust interface modules.
-//! For examples on how to build shaders with `vulkano-shaders` see:
-//! https://github.com/svenstaro/vulkanology/blob/master/build.rs
-//! https://github.com/tomaka/vulkano/blob/master/examples/build.rs
+//! For examples on how to build shaders with `vulkano-shaders` see `build.rs` and [this].
+//! 
+//! ## Composite shader tests
 //!
+//! `vulkanology` also provides some build utilities for working with segmented shaders.
+//! `src/build_utils.rs` contains working examples on how to use these utilities in your `build.rs`.
+//!
+//! [this]: https://github.com/tomaka/vulkano/blob/master/examples/build.rs
 //! [`vulkano`]: https://github.com/tomaka/vulkano
 //!
 #![deny(missing_docs)]
@@ -48,11 +52,11 @@ extern crate vulkano;
 
 pub mod build_utils;
 
-/// Creates a [`vulkano::instance::Instance`]. Does not enable any instance extensions.
+/// Creates a [`vulkano`] [`Instance`]. Does not enable any instance extensions.
 ///
 /// # Panics
 ///
-/// Panics if the vulkano instance loading procedure fails.
+/// Panics if the instance loading procedure fails.
 ///
 /// # Example
 ///
@@ -68,7 +72,8 @@ pub mod build_utils;
 /// # }
 /// ```
 ///
-/// [`vulkano::instance::Instance`]: https://docs.rs/vulkano/0.3.1/vulkano/instance/struct.Instance.html
+/// [`vulkano`]: https://github.com/tomaka/vulkano
+/// [`Instance`]: https://docs.rs/vulkano/0.3.1/vulkano/instance/struct.Instance.html
 ///
 #[macro_export]
 macro_rules! instance {
@@ -81,9 +86,7 @@ macro_rules! instance {
 
 /// This macro generates code for loading a [`PhysicalDevice`]. It takes
 /// the instance variable name and an optional list of features which the device
-/// should support.
-/// All available features are defined here:
-/// https://github.com/tomaka/vulkano/blob/master/vulkano/src/features.rs
+/// should support. All available features are defined [here].
 ///
 /// # Panics
 ///
@@ -116,6 +119,7 @@ macro_rules! instance {
 /// # }
 /// ```
 ///
+/// [here]: https://github.com/tomaka/vulkano/blob/master/vulkano/src/features.rs
 /// [`PhysicalDevice`]: https://docs.rs/vulkano/0.3.1/vulkano/instance/struct.PhysicalDevice.html
 ///
 #[macro_export]
@@ -142,7 +146,7 @@ macro_rules! physical_device {
 ///
 /// # Panics
 ///
-/// Panics if no conpute-compatible queue has been found, or the
+/// Panics if no compute-compatible queue has been found, or the
 /// device could not be initialized.
 ///
 /// # Example

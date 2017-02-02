@@ -1,4 +1,4 @@
-//! This module exports shader building tools which simplify the shader test building process.
+//! This module exports shader building tools which simplify the test shader building process.
 
 use std::path::Path;
 use std::io::{Read, Write};
@@ -14,7 +14,10 @@ use std::fs::create_dir_all;
 /// shaders into semantically grouped parts, so-called segments. Prior to building the shaders the
 /// build script will have to concatenate the files. Without additional measures the errors of the
 /// shader compiler would point to the generated files/lines. Therefore we insert the `#line`
-/// pragma which sets the correct file name and line number in the error reporter.
+/// pragma which sets the correct file name and line number in the error reporter. The `#line`
+/// pragma requires enabling the following extension in the shader program:
+///
+/// `#extension GL_GOOGLE_cpp_style_line_directive : enable`.
 ///
 /// # Panics
 ///
@@ -148,17 +151,27 @@ pub fn concatenate_files<PI, PO>(file_names: &[PI], write_to: PO)
     }
 }
 
-/// A simple macro for generating the code which compiles test shaders.
+/// A simple macro for generating the build code which concatenates the correct test shader
+/// segments.
+///
 /// * `$group_prefix` the prefix of the directory where tests for a particular UUT are located.
 /// * `$shader_name` the name of the shader test (should be a unique name).
 /// * `$segment` a list of shader segments to include between the header and the main.
 ///
-/// The directory structure for a single shader test looks like the following:
-/// The files you have to provide are:
-/// `tests/something.rs` a regular rust integration test.
-/// `tests/shaders/<$group_prefix>/<$shader_name>_header.comp` - The test shader header.
-/// `tests/shaders/<$group_prefix>/<$shader_name>_main.comp` - The test shader main.
-/// `<$segment>` - Some segments which the test shader includes and tests.
+/// The directory structure for a single shader test function should look like the following:
+///
+/// * `build.rs`: The build script which calls this macro and then compiles the concatenated shader.
+/// * `tests/something.rs`: A regular rust integration test with `#[test]` functions. The test
+/// functions should set up the test data, call the shader, and verify the result.
+/// * `tests/shaders/<$shader_name>_header.comp`: The test shader header. Contains extension pragmas
+/// layout definitions and all constants required for the shader segment under test to run.
+/// Additionally the following extension must be enabled to be able to compile segmented shaders
+/// with `#line` pragmas:
+///
+/// `#extension GL_GOOGLE_cpp_style_line_directive : enable`
+/// * `tests/shaders/<$shader_name>_main.comp`: The test shader main. Calls the tested function
+/// and writes its result to the provided result buffer.
+/// * `<$segment>`: Some segments which the test shader includes and tests.
 ///
 /// The GLSL files are then concatenated into a complete shader:
 /// `target/test_shaders/<$shader_name>.comp`
@@ -169,8 +182,6 @@ pub fn concatenate_files<PI, PO>(file_names: &[PI], write_to: PO)
 /// in the build script, right after concatenating the shader fragments. The generated module
 /// would be located in:
 /// `<OUT_DIR>/shaders/target/test_shaders/<$shader_name>.comp`
-///
-/// Fox examples on how to use this function see [this example].
 ///
 /// # Example
 ///
@@ -200,7 +211,6 @@ pub fn concatenate_files<PI, PO>(file_names: &[PI], write_to: PO)
 ///
 /// [`vulkano_shaders`]: https://github.com/tomaka/vulkano
 /// [`build_glsl_shaders`]: https://github.com/tomaka/vulkano/blob/master/vulkano-shaders/src/lib.rs#L29
-/// [this example]: https://github.com/tomaka/vulkano/blob/master/examples/build.rs
 ///
 #[macro_export]
 macro_rules! gen_simple_test_shader {
