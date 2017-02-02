@@ -12,9 +12,9 @@ repository = "https://github.com/svenstaro/vulkanology"
 keywords = ["shader", "vulkan", "test"]
 license = "MIT"
 
-[dependencies]
-vulkano = "0.3.1"
+[dev-dependencies]
 rand = "0.3.15"
+vulkano = "0.3.1"
 
 [build-dependencies]
 vulkano-shaders = "0.3.1"

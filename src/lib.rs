@@ -17,6 +17,7 @@
 //! unless you want to) you need to use the following crates in your test module header:
 //!
 //! ```
+//! #[macro_use]
 //! extern crate vulkano;
 //! #[macro_use]
 //! extern crate vulkanology;
@@ -61,6 +62,8 @@ pub mod build_utils;
 /// # Example
 ///
 /// ```
+/// # // These tests du not require vulkano-macros,
+/// # // therefore the `macro_use` will be omitted here, unless required.
 /// # extern crate vulkano;
 /// # #[macro_use]
 /// # extern crate vulkanology;
@@ -175,7 +178,7 @@ macro_rules! device_and_queue {
         // Select a queue family which supports compute operations.
         let mut queue_families = $physical_device.queue_families();
         let queue_family = queue_families.find(|q| q.supports_compute())
-                .expect("Couldn't find a compute queue family.");
+            .expect("Couldn't find a compute queue family.");
 
         // Initialize a device and a queue.
         let device_extensions = DeviceExtensions::none();
@@ -183,7 +186,7 @@ macro_rules! device_and_queue {
                                                &$physical_device.supported_features(),
                                                &device_extensions,
                                                [(queue_family, 0.5)].iter().cloned())
-                .expect("Failed to create device.");
+            .expect("Failed to create device.");
 
         // We only requested one queue, so `queues` is an array with only one element.
         (device, queues.next().unwrap())
@@ -222,11 +225,11 @@ macro_rules! cpu_array_buffer {
         use vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
         unsafe {
             CpuAccessibleBuffer::<[$buf_type]>::uninitialized_array(
-                       $device,
-                       $buf_len,
-                       &BufferUsage::all(),
-                       Some($queue.family()))
-                   .expect("Failed to create a cpu accessible buffer.")
+                $device,
+                $buf_len,
+                &BufferUsage::all(),
+                Some($queue.family()))
+                .expect("Failed to create a cpu accessible buffer.")
         }
     })
 }
@@ -247,6 +250,7 @@ macro_rules! cpu_array_buffer {
 /// # Example
 ///
 /// ```
+/// # #[macro_use]
 /// # extern crate vulkano;
 /// # #[macro_use]
 /// # extern crate vulkanology;
@@ -374,7 +378,7 @@ macro_rules! pipeline {
                                             &pipeline_layout,
                                             &compute_shader.main_entry_point(),
                                             &())
-                .expect("Failed to create compute pipeline.");
+            .expect("Failed to create compute pipeline.");
 
         // Assemble and return the execution command.
         let execution_command = PrimaryCommandBufferBuilder::new(device, queue.family())
