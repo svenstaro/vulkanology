@@ -1,0 +1,6 @@
+void main(void) {
+    // This shader generates random numbers using the xoroshiro128+ PRNG.
+    // It modifies the seed. The seed of the invocation (x,y,1) is located
+    // `2.0 * (y * work_group_size.x * work_group_count.x + x)`.
+    result[invocation_uid] = xoroshiro128plus();
+}
