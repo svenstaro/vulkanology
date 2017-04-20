@@ -1,7 +1,7 @@
 [package]
 name = "vulkanology"
 description = "A vulkan shader testing framework"
-version = "0.1.0"
+version = "0.2.0"
 authors = [
     "Sven-Hendrik Haase <svenstaro@gmail.com>",
     "Alexander Dmitriev <alexander.dmitriev2580@gmail.com>"
@@ -14,7 +14,7 @@ license = "MIT"
 
 [dev-dependencies]
 rand = "0.3.15"
-vulkano = "0.3.1"
+vulkano = "0.3.2"
 
 [build-dependencies]
-vulkano-shaders = "0.3.1"
+vulkano-shaders = "0.3.2"
