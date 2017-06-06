@@ -1,0 +1,22 @@
+#version 450
+#extension GL_ARB_gpu_shader_int64 : enable
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+// Unique invocation id. Used to determine the index of the PRNG seed for this
+// invocation in `prng[]`.
+uint invocation_uid =
+    gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x +
+    gl_GlobalInvocationID.x;
+
+layout(set = 0, binding = 0, std430) buffer Result { float result[]; };
+
+layout(push_constant, std140) uniform PushConstants {
+  layout(offset = 0) float a;
+  layout(offset = 4) float b;
+}
+constants;
+
+void main(void) {
+  result[invocation_uid] = constants.a * float(invocation_uid) + constants.b;
+}
