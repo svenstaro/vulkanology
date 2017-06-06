@@ -19,12 +19,12 @@ fn test_with_push_constants() {
     pipeline!{
         shader_path: "tests/shaders/push_constants.comp",
         workgroup_count: [100, 100, 1],
-        buffers: {
-            result: [f32;NUM_INVOCATIONS]
-        },
         push_constants: {
             a: f32 = A,
             b: f32 = B
+        },
+        buffers: {
+            result: [f32;NUM_INVOCATIONS]
         },
         execution_command: execute_shader
     };
