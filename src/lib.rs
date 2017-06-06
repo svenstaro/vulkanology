@@ -36,7 +36,7 @@
 //! This utility pack is built around the [`vulkano`] library, which also provides `vulkano-shaders`,
 //! a library which compiles GLSL shaders into Rust interface modules.
 //! For examples on how to build shaders with `vulkano-shaders` see `build.rs` and [this].
-//! 
+//!
 //! ## Composite shader tests
 //!
 //! `vulkanology` also provides some build utilities for working with segmented shaders.
@@ -269,9 +269,11 @@ macro_rules! cpu_array_buffer {
 /// //        `shader_path: "path/to/shader/program.comp"`
 /// //    2. A three-dimensional array defining the workgroup count:
 /// //        `workgroup_count: [1, 2, 3],`
-/// //    3. The buffers that your test shader uses:
+/// //    3. (Optional) The push constants for your shader.
+/// //        For reference see `tests/push_constants.rs`.
+/// //    4. The buffers that your test shader uses:
 /// //        `buffers: { input_data: [u32;4], some_buffer: [Dennis;42] },`
-/// //    4. The name of the shader execution:
+/// //    5. The name of the shader execution:
 /// //        `execution_command: run_example_shader_function_name`
 /// pipeline!{
 ///     shader_path: "tests/shaders/example.comp",
@@ -329,6 +331,23 @@ macro_rules! pipeline {
         buffers: { $( $buf_ident:ident : [$buf_type:ty;$buf_len:expr] ),* },
         execution_command: $exec_cmd:ident
     } => {
+        pipeline! {
+            shader_path: $shader_path,
+            workgroup_count: $workgroup_count,
+            push_constants: {},
+            buffers: { $( $buf_ident : [$buf_type;$buf_len] ),* },
+            execution_command: $exec_cmd
+        }
+    };
+    {
+        shader_path: $shader_path:expr,
+        workgroup_count: $workgroup_count:expr,
+        push_constants: {
+            $( $push_constant_name:ident : $push_constant_type:ty = $push_constant_value:expr ),*
+        },
+        buffers: { $( $buf_ident:ident : [$buf_type:ty;$buf_len:expr] ),* },
+        execution_command: $exec_cmd:ident
+    } => {
         use vulkano::command_buffer::PrimaryCommandBufferBuilder;
         use vulkano::command_buffer::submit as submit_command;
         use vulkano::descriptor::descriptor_set::DescriptorPool;
@@ -343,6 +362,9 @@ macro_rules! pipeline {
         // Create the pipeline layout wrapper.
         mod layout_definition {
             pipeline_layout!{
+                push_constants: {
+                    $( $push_constant_name: $push_constant_type ),*
+                },
                 buffers: {
                     $( $buf_ident: StorageBuffer<[$buf_type]> ),*
                 }
@@ -378,11 +400,14 @@ macro_rules! pipeline {
             .expect("Failed to create compute pipeline.");
 
         // Assemble and return the execution command.
+        let push_constants = layout_definition::PushConstants {
+            $( $push_constant_name: $push_constant_value ),*
+        };
         let execution_command = PrimaryCommandBufferBuilder::new(device, queue.family())
-            .dispatch(&pipeline, buffer_set, $workgroup_count, &())
+            .dispatch(&pipeline, buffer_set, $workgroup_count, &push_constants)
             .build();
         let $exec_cmd = || {
             submit_command(&execution_command, queue).unwrap();
         };
-    }
+    };
 }
